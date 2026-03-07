@@ -80,7 +80,12 @@ async def test_detect_new_identification(db):
     id_events = [e for e in events if e["event_type"] == "identification"]
     assert len(id_events) == 1
     assert id_events[0]["actor_login"] == "alice"
-    assert id_events[0]["is_participant"] == 1
+
+    # Alice should have been auto-registered as a participant
+    conn = await get_db()
+    cursor = await conn.execute("SELECT login FROM participants WHERE login = 'alice'")
+    assert await cursor.fetchone() is not None
+    await conn.close()
 
 
 @pytest.mark.asyncio

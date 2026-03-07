@@ -200,43 +200,63 @@ async def run_diff_cycle() -> list[dict]:
 
 
 async def _store_events(events: list[dict]) -> None:
-    """Store events in the database with participant attribution."""
+    """Store events in the database with participant attribution.
+
+    Any user who appears in an event is automatically registered as a
+    participant (no pre-registration required).
+    """
     db = await get_db()
     try:
-        # Load participant logins for attribution
+        # Load known participants
         cursor = await db.execute("SELECT login, team_id FROM participants")
         rows = await cursor.fetchall()
         participants = {row[0].lower(): row[1] for row in rows}
 
         for event in events:
             login = (event.get("actor_login") or "").lower()
-            is_participant = 1 if login in participants else 0
+            if not login:
+                # System events (quality_change) have no actor
+                await _insert_event(db, event, team_id=None, is_participant=0)
+                continue
+
+            # Auto-register new participants
+            if login not in participants:
+                await db.execute(
+                    """INSERT OR IGNORE INTO participants (user_id, login, name, icon_url)
+                       VALUES (
+                           (SELECT COALESCE(MAX(user_id), 0) + 1 FROM participants),
+                           ?, ?, ?
+                       )""",
+                    (login, event.get("actor_name", ""), event.get("actor_icon_url", "")),
+                )
+                participants[login] = None  # No team
+
             team_id = participants.get(login)
-
-            event["is_participant"] = is_participant
-            event["actor_team_id"] = team_id
-
-            await db.execute(
-                """INSERT INTO events
-                   (event_type, actor_login, actor_name, actor_icon_url,
-                    actor_team_id, is_participant, obs_id, detail_json, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    event["event_type"],
-                    event.get("actor_login"),
-                    event.get("actor_name", ""),
-                    event.get("actor_icon_url", ""),
-                    team_id,
-                    is_participant,
-                    event.get("obs_id"),
-                    json.dumps(event.get("detail", {})),
-                    event["created_at"],
-                ),
-            )
+            await _insert_event(db, event, team_id=team_id, is_participant=1)
 
         await db.commit()
     finally:
         await db.close()
+
+
+async def _insert_event(db, event: dict, team_id, is_participant: int) -> None:
+    await db.execute(
+        """INSERT INTO events
+           (event_type, actor_login, actor_name, actor_icon_url,
+            actor_team_id, is_participant, obs_id, detail_json, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            event["event_type"],
+            event.get("actor_login"),
+            event.get("actor_name", ""),
+            event.get("actor_icon_url", ""),
+            team_id,
+            is_participant,
+            event.get("obs_id"),
+            json.dumps(event.get("detail", {})),
+            event["created_at"],
+        ),
+    )
 
 
 def _make_event(
