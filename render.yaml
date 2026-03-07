@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: ranunculus-blitz
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/overview
+    envVars:
+      - key: BLITZ_DB_PATH
+        value: blitz.db
+      - key: BLITZ_PLACE_ID
+        value: "6857"

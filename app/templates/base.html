@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Ranunculus Blitz{% endblock %}</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Theme -->
+    <link rel="stylesheet" href="/static/css/theme.css">
+
+    {% block head %}{% endblock %}
+</head>
+<body class="botanical-bg" x-data>
+
+    <!-- Navigation -->
+    <nav>
+        <a class="logo" href="/">🌼 Ranunculus Blitz <span>ID Tracker</span></a>
+        <ul class="nav-links">
+            <li><a href="/" class="{% block nav_dashboard %}{% endblock %}">Dashboard</a></li>
+            <li><a href="/map" class="{% block nav_map %}{% endblock %}">Map</a></li>
+            <li><a href="/teams" class="{% block nav_teams %}{% endblock %}">Teams</a></li>
+            <li><a href="/observations" class="{% block nav_observations %}{% endblock %}">Observations</a></li>
+            <li><a href="/wrapup" class="{% block nav_wrapup %}{% endblock %}">Wrap-up</a></li>
+        </ul>
+        <div class="sse-indicator" style="margin-left: auto;">
+            <span class="sse-dot" :class="$store.sse.connected ? 'connected' : 'disconnected'"></span>
+            <span class="sse-label" x-show="!$store.sse.connected" x-cloak>Reconnecting...</span>
+        </div>
+    </nav>
+
+    <!-- Status banner -->
+    <div class="status-banner" :class="$store.overview.status"
+         x-text="({
+             'setup': '⚙️ Setting up — snapshot not yet taken',
+             'ready': '✅ Snapshot ready — waiting to start the blitz',
+             'live': '🔴 LIVE — Blitz in progress!',
+             'ended': '🏁 Blitz complete!'
+         })[$store.overview.status] || 'Loading...'">
+    </div>
+
+    {% block content %}{% endblock %}
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- App JS -->
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/map.js"></script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

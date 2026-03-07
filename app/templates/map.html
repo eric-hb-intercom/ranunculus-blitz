@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Map — Ranunculus Blitz{% endblock %}
+{% block nav_map %}active{% endblock %}
+
+{% block head %}
+<style>
+    .container { padding: 0; max-width: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="map-fullscreen">
+    <div id="map" style="height: 100%; width: 100%;"></div>
+    <!-- Floating legend for fullscreen map -->
+    <div class="map-legend-float" x-data>
+        <template x-for="sp in $store.overview.species" :key="sp.name">
+            <span class="legend-item" :data-map-filter="sp.name"
+                  @click="toggleMapFilter(sp.name)"
+                  style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                <span class="legend-dot" :style="'background:' + sp.color"></span>
+                <span x-text="sp.common || sp.name"></span>
+            </span>
+        </template>
+        <span class="legend-item" data-map-filter="resolved"
+              @click="toggleMapFilter('resolved')"
+              style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+            <span class="legend-dot" style="background: #3a8a3f"></span>
+            Resolved
+        </span>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => initMap('map'), 200);
+    });
+</script>
+{% endblock %}

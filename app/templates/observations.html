@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Observations — Ranunculus Blitz{% endblock %}
+{% block nav_observations %}active{% endblock %}
+
+{% block content %}
+<div class="container" x-data="observationsPage()">
+
+    <h2 class="section-title" style="margin-top: 20px;">🌼 Observations Browser</h2>
+
+    <!-- Username bar -->
+    <div class="controls" style="margin-top: 16px; background: var(--cream); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);">
+        <label style="font-size: 0.85em; font-weight: 600; color: var(--green-dark);">Your iNat username:</label>
+        <input type="text" x-model="claimLogin" @change="saveLogin()"
+               placeholder="e.g. jane_naturalist"
+               style="max-width: 200px;">
+        <template x-if="claimLogin">
+            <span style="font-size: 0.82em; color: var(--success);">Claiming as <strong x-text="claimLogin"></strong></span>
+        </template>
+        <template x-if="!claimLogin">
+            <span style="font-size: 0.82em; color: var(--text-muted);">Set username to claim observations</span>
+        </template>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+        <select x-model="filter" @change="loadPage(1)">
+            <option value="all">All observations</option>
+            <option value="unresolved">Needs ID</option>
+            <option value="resolved">Resolved</option>
+            <option value="claimed">Claimed</option>
+        </select>
+
+        <select x-model="sort" @change="loadPage(1)">
+            <option value="obs_id">Observation ID</option>
+            <option value="observed_on">Date observed</option>
+            <option value="taxon_name">Taxon name</option>
+            <option value="updated_at">Last updated</option>
+        </select>
+
+        <select x-model="order" @change="loadPage(1)">
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+        </select>
+
+        <select x-model="species" @change="loadPage(1)">
+            <option value="">All species</option>
+            <template x-for="sp in $store.overview.species" :key="sp.name">
+                <option :value="sp.name" x-text="sp.common ? sp.common + ' (' + sp.name + ')' : sp.name"></option>
+            </template>
+        </select>
+
+        <span style="color: var(--text-muted); font-size: 0.85em; margin-left: auto;"
+              x-text="fmt(total) + ' observations'"></span>
+    </div>
+
+    <!-- Grid -->
+    <div class="obs-grid">
+        <template x-for="obs in items" :key="obs.obs_id">
+            <div class="obs-card">
+                <template x-if="obs.photo_url">
+                    <img class="obs-thumb" :src="obs.photo_url" :alt="obs.taxon_name || 'Observation'" loading="lazy">
+                </template>
+                <template x-if="!obs.photo_url">
+                    <div class="obs-thumb" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.85em;">
+                        No photo
+                    </div>
+                </template>
+                <div class="obs-info">
+                    <div class="obs-taxon" x-text="obs.taxon_name || 'Unknown'"></div>
+                    <div class="obs-meta">
+                        <span x-text="obs.observed_on || 'No date'"></span> ·
+                        <span class="badge" :class="obs.resolved ? 'badge-research' : 'badge-needs-id'"
+                              x-text="obs.resolved ? 'Resolved' : 'Needs ID'"></span>
+                    </div>
+                    <template x-if="obs.claimed_by">
+                        <div class="obs-meta" style="margin-top: 4px;">
+                            Claimed by <strong x-text="obs.claimed_by"></strong>
+                        </div>
+                    </template>
+                </div>
+                <div class="obs-actions">
+                    <a class="btn btn-sm btn-primary"
+                       :href="'https://www.inaturalist.org/observations/' + obs.obs_id"
+                       target="_blank">
+                        View on iNat
+                    </a>
+                    <template x-if="claimLogin && !obs.claimed_by && !obs.resolved">
+                        <button class="btn btn-sm btn-secondary"
+                                @click="claimObs(obs.obs_id)">
+                            Claim
+                        </button>
+                    </template>
+                    <template x-if="obs.claimed_by">
+                        <button class="btn btn-sm btn-secondary"
+                                @click="releaseObs(obs.obs_id)">
+                            Release
+                        </button>
+                    </template>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <!-- Pagination -->
+    <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 24px; padding-bottom: 24px;">
+        <button class="btn btn-sm btn-secondary" :disabled="page <= 1" @click="loadPage(1)">First</button>
+        <button class="btn btn-secondary" :disabled="page <= 1" @click="loadPage(page - 1)">← Prev</button>
+        <span style="display: flex; align-items: center; gap: 4px; font-size: 0.9em; color: var(--text-light);">
+            Page
+            <input type="number" :value="page" @change="loadPage(Math.max(1, Math.min(pages, parseInt($event.target.value) || 1)))"
+                   style="width: 50px; text-align: center; padding: 4px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.9em;"
+                   min="1" :max="pages">
+            of <span x-text="pages"></span>
+        </span>
+        <button class="btn btn-secondary" :disabled="page >= pages" @click="loadPage(page + 1)">Next →</button>
+        <button class="btn btn-sm btn-secondary" :disabled="page >= pages" @click="loadPage(pages)">Last</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function observationsPage() {
+    return {
+        items: [],
+        total: 0,
+        page: 1,
+        pages: 1,
+        filter: 'all',
+        sort: 'obs_id',
+        order: 'asc',
+        species: '',
+        claimLogin: '',
+
+        async init() {
+            this.claimLogin = localStorage.getItem('blitz_username') || '';
+            await this.loadPage(1);
+        },
+
+        saveLogin() {
+            localStorage.setItem('blitz_username', this.claimLogin);
+        },
+
+        async loadPage(p) {
+            this.page = p;
+            try {
+                let url = `/api/observations?page=${p}&per_page=50&sort=${this.sort}&order=${this.order}&filter=${this.filter}`;
+                if (this.species) url += `&species=${encodeURIComponent(this.species)}`;
+                const resp = await fetch(url);
+                const data = await resp.json();
+                this.items = data.items;
+                this.total = data.total;
+                this.pages = data.pages;
+            } catch (e) {
+                console.error('Failed to load observations:', e);
+            }
+        },
+
+        async claimObs(obsId) {
+            if (!this.claimLogin) return;
+            try {
+                await fetch(`/api/observations/${obsId}/claim`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ login: this.claimLogin }),
+                });
+                await this.loadPage(this.page);
+            } catch (e) {
+                console.error('Failed to claim:', e);
+            }
+        },
+
+        async releaseObs(obsId) {
+            try {
+                await fetch(`/api/observations/${obsId}/claim`, { method: 'DELETE' });
+                await this.loadPage(this.page);
+            } catch (e) {
+                console.error('Failed to release:', e);
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

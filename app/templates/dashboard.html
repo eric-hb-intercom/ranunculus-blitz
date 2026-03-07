@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Ranunculus Blitz{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block content %}
+<!-- Hero bar with timer and progress -->
+<div class="hero-bar">
+    <div class="hero-timer" x-text="$store.overview.timerDisplay">0:00:00</div>
+
+    <div class="hero-progress">
+        <div class="label">
+            <span x-text="fmt($store.overview.resolved)">0</span> of
+            <span x-text="fmt($store.overview.total)">0</span> observations resolved
+        </div>
+        <div class="progress-bar">
+            <div class="fill" :style="'width:' + $store.overview.pct + '%'"></div>
+            <div class="text" x-text="$store.overview.pct.toFixed(1) + '%'">0%</div>
+        </div>
+    </div>
+
+    <div class="hero-stats">
+        <div class="hero-stat">
+            <div class="val" x-text="fmt($store.overview.resolved)">0</div>
+            <div class="lbl">Resolved</div>
+        </div>
+        <div class="hero-stat">
+            <div class="val" x-text="fmt($store.overview.total - $store.overview.resolved)">0</div>
+            <div class="lbl">Remaining</div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="grid-3-1" style="margin-top: 20px;">
+        <!-- Main column -->
+        <div>
+            <!-- Map first (most interactive element) -->
+            <div class="card" style="margin-bottom: 20px;"
+                 x-data="{ showLegendHint: false }"
+                 x-init="
+                    if (!localStorage.getItem('blitz_legend_hint_seen')) {
+                        showLegendHint = true;
+                        localStorage.setItem('blitz_legend_hint_seen', '1');
+                        setTimeout(() => { showLegendHint = false }, 5000);
+                    }
+                 ">
+                <div class="card-header">
+                    🗺️ Observation Map
+                    <div class="map-legend" style="margin-left: auto; display: flex; gap: 12px; align-items: center; position: relative;">
+                        <span class="legend-hint" x-show="showLegendHint" x-transition.opacity x-cloak>Click a species to filter the map</span>
+                        <template x-for="sp in $store.overview.species" :key="sp.name">
+                            <span class="legend-item legend-clickable" :data-map-filter="sp.name"
+                                  @click="$store.mapFilter.toggle(sp.name)"
+                                  style="display: flex; align-items: center; gap: 4px; font-size: 0.8em; cursor: pointer;">
+                                <span class="legend-dot" :style="'background:' + sp.color"></span>
+                                <span x-text="sp.common || sp.name"></span>
+                            </span>
+                        </template>
+                        <span class="legend-item legend-clickable" data-map-filter="resolved"
+                              @click="$store.mapFilter.toggle('resolved')"
+                              style="display: flex; align-items: center; gap: 4px; font-size: 0.8em; cursor: pointer;">
+                            <span class="legend-dot" style="background: #3a8a3f"></span>
+                            Resolved
+                        </span>
+                        <a href="/map" class="btn btn-sm btn-secondary">Fullscreen</a>
+                    </div>
+                </div>
+                <div class="map-container" style="height: 380px;">
+                    <div id="map" style="height: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- Species breakdown -->
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">🌼 Species Breakdown</div>
+                <div class="card-body" style="display: flex; gap: 16px; flex-wrap: wrap;">
+                    <template x-for="sp in $store.overview.species" :key="sp.name">
+                        <div class="species-card" :style="'border-left: 4px solid ' + sp.color">
+                            <div class="species-name" x-text="sp.common || sp.name"></div>
+                            <div class="species-latin" x-text="sp.name"></div>
+                            <div class="species-stats">
+                                <span x-text="fmt(sp.resolved)"></span> / <span x-text="fmt(sp.total)"></span> resolved
+                            </div>
+                            <div class="progress-bar" style="height: 6px; margin-top: 6px;">
+                                <div class="fill" :style="'width:' + (sp.total > 0 ? (100 * sp.resolved / sp.total) : 0) + '%; background:' + sp.color"></div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Activity feed -->
+            <div class="card">
+                <div class="card-header">📡 Live Activity</div>
+                <div class="card-body activity-feed">
+                    <template x-if="$store.events.items.length === 0">
+                        <p style="color: var(--text-muted); font-size: 0.9em; padding: 12px 0;">
+                            No activity yet. Events will appear here as participants add identifications, comments, and annotations.
+                        </p>
+                    </template>
+                    <template x-for="event in $store.events.items" :key="event.event_id">
+                        <div class="feed-item">
+                            <div class="feed-icon" :class="$store.events.eventClass(event.event_type)"
+                                 x-text="$store.events.eventIcon(event.event_type)">
+                            </div>
+                            <div class="feed-text">
+                                <span x-html="$store.events.eventText(event)"></span>
+                                <template x-if="event.is_participant && event.actor_team_id">
+                                    <span class="team-badge"
+                                          :style="'background:' + ($store.teams.items.find(t => t.team_id === event.actor_team_id)?.color || '#888')"
+                                          x-text="$store.teams.items.find(t => t.team_id === event.actor_team_id)?.name || ''">
+                                    </span>
+                                </template>
+                                <span style="color: var(--text-muted); font-size: 0.82em;">
+                                    — obs #<span x-text="event.obs_id"></span>
+                                </span>
+                            </div>
+                            <div class="feed-time" x-text="$store.events.timeAgo(event.created_at)"></div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar: Team standings -->
+        <div>
+            <div class="card">
+                <div class="card-header">🏆 Team Progress</div>
+                <div class="card-body">
+                    <template x-if="$store.teams.items.length === 0">
+                        <p style="color: var(--text-muted); font-size: 0.9em;">
+                            No teams configured yet.
+                        </p>
+                    </template>
+                    <template x-for="team in $store.teams.items" :key="team.team_id">
+                        <div class="team-bar">
+                            <div class="team-color" :style="'background:' + team.color"></div>
+                            <div class="team-name" x-text="team.name"></div>
+                            <div class="team-progress">
+                                <div class="fill"
+                                     :style="'width:' + (100 * team.total / $store.teams.maxTotal) + '%; background:' + team.color">
+                                </div>
+                            </div>
+                            <div class="team-count" x-text="fmt(team.total)"></div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Quick stats per team -->
+            <div class="card" style="margin-top: 20px;">
+                <div class="card-header">👥 Top Contributors</div>
+                <div class="card-body">
+                    <template x-for="p in $store.participants.items.slice(0, 10)" :key="p.login">
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border);">
+                            <img class="avatar avatar-sm" :src="p.icon_url || ''" :alt="p.login"
+                                 onerror="this.style.display='none'">
+                            <div style="flex: 1; font-size: 0.85em;">
+                                <strong x-text="p.name || p.login"></strong>
+                                <template x-if="p.team_name">
+                                    <span class="team-badge"
+                                          :style="'background:' + (p.team_color || '#888')"
+                                          x-text="p.team_name">
+                                    </span>
+                                </template>
+                            </div>
+                            <div style="font-weight: 700; color: var(--green-dark); font-size: 0.9em;"
+                                 x-text="fmt(p.total)">
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => initMap('map'), 200);
+    });
+</script>
+{% endblock %}
