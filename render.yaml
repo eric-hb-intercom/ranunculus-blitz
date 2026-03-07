@@ -9,3 +9,9 @@ services:
         value: blitz.db
       - key: BLITZ_PLACE_ID
         value: "6857"
+      - key: BLITZ_AUTO_SNAPSHOT
+        value: "true"
+      - key: BLITZ_DIFF_INTERVAL
+        value: "90"
+      - key: BLITZ_TEAMS
+        value: '[{"name": "Solo Testers", "color": "#d4a843", "members": ["eric_haavind_berman"]}]'
