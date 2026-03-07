@@ -44,20 +44,30 @@ async def get_paged(
 ) -> list[dict]:
     """Paginate through an iNat API endpoint, collecting all results."""
     results: list[dict] = []
+    async for batch in iter_pages(endpoint, params, max_results):
+        results.extend(batch)
+    return results[:max_results]
+
+
+async def iter_pages(
+    endpoint: str, params: dict, max_results: int = 10000
+):
+    """Yield pages of results one at a time (memory-efficient streaming)."""
     page = 1
     per_page = min(200, max_results)
+    fetched = 0
 
-    while len(results) < max_results:
+    while fetched < max_results:
         data = await get(endpoint, {**params, "page": page, "per_page": per_page})
         batch = data.get("results", [])
-        results.extend(batch)
         total = data.get("total_results", 0)
         logger.info(f"Fetched page {page}: {len(batch)} results (total: {total})")
-        if len(batch) < per_page or len(results) >= total:
+        if batch:
+            yield batch
+        fetched += len(batch)
+        if len(batch) < per_page or fetched >= total:
             break
         page += 1
-
-    return results[:max_results]
 
 
 async def lookup_taxon(name: str, rank: str = "genus") -> dict | None:
