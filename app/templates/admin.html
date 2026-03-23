@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}Admin — Ranunculus Blitz{% endblock %}
+
+{% block content %}
+<div class="container" x-data="adminPanel()" x-init="refresh()">
+
+    <h2 class="section-title" style="margin-top: 20px;">⚙️ Blitz Control Panel</h2>
+
+    <!-- Current status -->
+    <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header">Status</div>
+        <div class="card-body">
+            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                <div>
+                    <strong>Blitz status:</strong>
+                    <span class="badge" :class="{
+                        'badge-needs-id': status === 'setup',
+                        'badge-research': status === 'live',
+                        'badge-resolved': status === 'ended'
+                    }" x-text="status" style="font-size: 0.9em;"></span>
+                </div>
+                <div><strong>Observations:</strong> <span x-text="fmt(totalObs)"></span></div>
+                <template x-if="startedAt">
+                    <div><strong>Started:</strong> <span x-text="new Date(startedAt).toLocaleString()"></span></div>
+                </template>
+                <template x-if="endedAt">
+                    <div><strong>Ended:</strong> <span x-text="new Date(endedAt).toLocaleString()"></span></div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header">Actions</div>
+        <div class="card-body" style="display: flex; flex-direction: column; gap: 16px;">
+
+            <!-- Snapshot -->
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button class="btn btn-secondary" @click="doSnapshot()" :disabled="busy">
+                    📸 Take Fresh Snapshot
+                </button>
+                <span style="font-size: 0.85em; color: var(--text-muted);">
+                    Pulls all current observations from iNaturalist. Takes 2-3 minutes.
+                </span>
+            </div>
+
+            <!-- Start -->
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button class="btn btn-primary" @click="doStart()" :disabled="busy || status === 'live' || status === 'ended'">
+                    🟢 Start Blitz
+                </button>
+                <span style="font-size: 0.85em; color: var(--text-muted);">
+                    Begins tracking. The differ will poll iNat every 90 seconds for new IDs.
+                </span>
+            </div>
+
+            <!-- End -->
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button class="btn btn-gold" @click="doEnd()" :disabled="busy || status !== 'live'">
+                    🏁 End Blitz
+                </button>
+                <span style="font-size: 0.85em; color: var(--text-muted);">
+                    Stops polling, runs a final diff, and computes superlatives.
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log -->
+    <div class="card">
+        <div class="card-header">Log</div>
+        <div class="card-body">
+            <div style="font-family: monospace; font-size: 0.82em; color: var(--text-light); max-height: 300px; overflow-y: auto;">
+                <template x-for="(msg, i) in log" :key="i">
+                    <div style="padding: 2px 0;" x-text="msg"></div>
+                </template>
+                <template x-if="log.length === 0">
+                    <div style="color: var(--text-muted);">No actions taken yet.</div>
+                </template>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function adminPanel() {
+    return {
+        status: 'setup',
+        totalObs: 0,
+        startedAt: null,
+        endedAt: null,
+        busy: false,
+        log: [],
+
+        async refresh() {
+            try {
+                const resp = await fetch('/api/blitz/status');
+                const data = await resp.json();
+                this.status = data.status;
+                this.totalObs = data.total_observations;
+                this.startedAt = data.started_at;
+                this.endedAt = data.ended_at;
+            } catch (e) {
+                this.addLog('Failed to fetch status: ' + e.message);
+            }
+        },
+
+        addLog(msg) {
+            const ts = new Date().toLocaleTimeString();
+            this.log.unshift(`[${ts}] ${msg}`);
+        },
+
+        async doSnapshot() {
+            this.busy = true;
+            this.addLog('Starting snapshot...');
+            try {
+                const resp = await fetch('/api/blitz/snapshot', { method: 'POST' });
+                const data = await resp.json();
+                this.addLog(data.message || JSON.stringify(data));
+                // Poll for completion
+                this.pollStatus();
+            } catch (e) {
+                this.addLog('Snapshot failed: ' + e.message);
+            }
+            this.busy = false;
+        },
+
+        async doStart() {
+            this.busy = true;
+            this.addLog('Starting blitz...');
+            try {
+                const resp = await fetch('/api/blitz/start', { method: 'POST' });
+                const data = await resp.json();
+                if (resp.ok) {
+                    this.addLog('Blitz is LIVE!');
+                } else {
+                    this.addLog('Error: ' + (data.detail || JSON.stringify(data)));
+                }
+                await this.refresh();
+            } catch (e) {
+                this.addLog('Start failed: ' + e.message);
+            }
+            this.busy = false;
+        },
+
+        async doEnd() {
+            if (!confirm('End the blitz? This will stop polling and compute final superlatives.')) {
+                return;
+            }
+            this.busy = true;
+            this.addLog('Ending blitz...');
+            try {
+                const resp = await fetch('/api/blitz/end', { method: 'POST' });
+                const data = await resp.json();
+                if (resp.ok) {
+                    this.addLog('Blitz ended! Superlatives computed.');
+                } else {
+                    this.addLog('Error: ' + (data.detail || JSON.stringify(data)));
+                }
+                await this.refresh();
+            } catch (e) {
+                this.addLog('End failed: ' + e.message);
+            }
+            this.busy = false;
+        },
+
+        pollStatus() {
+            const poll = setInterval(async () => {
+                await this.refresh();
+                this.addLog(`Status: ${this.status}, Observations: ${this.totalObs}`);
+                if (this.status === 'ready' || this.status === 'live') {
+                    clearInterval(poll);
+                    this.addLog('Snapshot complete!');
+                }
+            }, 10000);
+        }
+    };
+}
+</script>
+{% endblock %}

@@ -99,6 +99,11 @@ async def wrapup_page(request: Request):
     return templates.TemplateResponse(request, "wrapup.html")
 
 
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_page(request: Request):
+    return templates.TemplateResponse(request, "admin.html")
+
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 async def _seed_teams_and_participants():
