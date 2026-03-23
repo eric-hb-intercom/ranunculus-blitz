@@ -24,6 +24,19 @@ async def run_snapshot(species_list: list[SpeciesConfig], place_id: int) -> dict
     total_count = 0
     species_results = []
 
+    # Clear stale data from previous blitz
+    db = await get_db()
+    try:
+        await db.execute("DELETE FROM events")
+        await db.execute("DELETE FROM participants")
+        await db.execute("DELETE FROM superlatives")
+        await db.execute("DELETE FROM observations")
+        await db.execute("DELETE FROM blitz_config")
+        await db.commit()
+        logger.info("Cleared previous blitz data")
+    finally:
+        await db.close()
+
     for sp in species_list:
         logger.info(f"Looking up taxon: {sp.name}")
         taxon = await lookup_taxon(sp.name, rank="species")
@@ -51,7 +64,7 @@ async def run_snapshot(species_list: list[SpeciesConfig], place_id: int) -> dict
                     "order_by": "id",
                     "order": "asc",
                 },
-                max_results=10000,
+                max_results=15000,
             ):
                 for obs in batch:
                     parsed = parse_observation(obs)
