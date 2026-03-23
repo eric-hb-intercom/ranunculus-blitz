@@ -56,7 +56,7 @@ async def lifespan(app: FastAPI):
     await close_client()
 
 
-app = FastAPI(title="Ranunculus Blitz Tracker", lifespan=lifespan)
+app = FastAPI(title="Ranunculus Blitz Tracker", lifespan=lifespan, debug=True)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory=str(APP_DIR / "static")), name="static")
