@@ -2,13 +2,12 @@
 
 import asyncio
 import logging
-import traceback
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -57,14 +56,7 @@ async def lifespan(app: FastAPI):
     await close_client()
 
 
-app = FastAPI(title="Ranunculus Blitz Tracker", lifespan=lifespan, debug=True)
-
-
-@app.exception_handler(Exception)
-async def debug_exception_handler(request: Request, exc: Exception):
-    tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
-    return PlainTextResponse("".join(tb), status_code=500)
-
+app = FastAPI(title="Ranunculus Blitz Tracker", lifespan=lifespan)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory=str(APP_DIR / "static")), name="static")
@@ -84,27 +76,27 @@ app.include_router(stream.router)
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
-    return templates.TemplateResponse("dashboard.html", {"request": request})
+    return templates.TemplateResponse(request, "dashboard.html")
 
 
 @app.get("/map", response_class=HTMLResponse)
 async def fullscreen_map(request: Request):
-    return templates.TemplateResponse("map.html", {"request": request})
+    return templates.TemplateResponse(request, "map.html")
 
 
 @app.get("/teams", response_class=HTMLResponse)
 async def teams_page(request: Request):
-    return templates.TemplateResponse("teams.html", {"request": request})
+    return templates.TemplateResponse(request, "teams.html")
 
 
 @app.get("/observations", response_class=HTMLResponse)
 async def observations_page(request: Request):
-    return templates.TemplateResponse("observations.html", {"request": request})
+    return templates.TemplateResponse(request, "observations.html")
 
 
 @app.get("/wrapup", response_class=HTMLResponse)
 async def wrapup_page(request: Request):
-    return templates.TemplateResponse("wrapup.html", {"request": request})
+    return templates.TemplateResponse(request, "wrapup.html")
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
