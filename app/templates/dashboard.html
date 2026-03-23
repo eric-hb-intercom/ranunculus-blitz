@@ -105,12 +105,6 @@
                             </div>
                             <div class="feed-text">
                                 <span x-html="$store.events.eventText(event)"></span>
-                                <template x-if="event.is_participant && event.actor_team_id">
-                                    <span class="team-badge"
-                                          :style="'background:' + ($store.teams.items.find(t => t.team_id === event.actor_team_id)?.color || '#888')"
-                                          x-text="$store.teams.items.find(t => t.team_id === event.actor_team_id)?.name || ''">
-                                    </span>
-                                </template>
                                 <span style="color: var(--text-muted); font-size: 0.82em;">
                                     — obs #<span x-text="event.obs_id"></span>
                                 </span>
@@ -122,33 +116,9 @@
             </div>
         </div>
 
-        <!-- Sidebar: Team standings -->
+        <!-- Sidebar: Top contributors -->
         <div>
             <div class="card">
-                <div class="card-header">🏆 Team Progress</div>
-                <div class="card-body">
-                    <template x-if="$store.teams.items.length === 0">
-                        <p style="color: var(--text-muted); font-size: 0.9em;">
-                            No teams configured yet.
-                        </p>
-                    </template>
-                    <template x-for="team in $store.teams.items" :key="team.team_id">
-                        <div class="team-bar">
-                            <div class="team-color" :style="'background:' + team.color"></div>
-                            <div class="team-name" x-text="team.name"></div>
-                            <div class="team-progress">
-                                <div class="fill"
-                                     :style="'width:' + (100 * team.total / $store.teams.maxTotal) + '%; background:' + team.color">
-                                </div>
-                            </div>
-                            <div class="team-count" x-text="fmt(team.total)"></div>
-                        </div>
-                    </template>
-                </div>
-            </div>
-
-            <!-- Quick stats per team -->
-            <div class="card" style="margin-top: 20px;">
                 <div class="card-header">👥 Top Contributors</div>
                 <div class="card-body">
                     <template x-for="p in $store.participants.items.slice(0, 10)" :key="p.login">
@@ -157,12 +127,6 @@
                                  onerror="this.style.display='none'">
                             <div style="flex: 1; font-size: 0.85em;">
                                 <strong x-text="p.name || p.login"></strong>
-                                <template x-if="p.team_name">
-                                    <span class="team-badge"
-                                          :style="'background:' + (p.team_color || '#888')"
-                                          x-text="p.team_name">
-                                    </span>
-                                </template>
                             </div>
                             <div style="font-weight: 700; color: var(--green-dark); font-size: 0.9em;"
                                  x-text="fmt(p.total)">

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Teams — Ranunculus Blitz{% endblock %}
+{% block title %}Contributors — Ranunculus Blitz{% endblock %}
 {% block nav_teams %}active{% endblock %}
 
 {% block content %}
@@ -9,131 +9,67 @@
         Every identification, comment, and annotation helps build our understanding of buttercups across the UK.
     </p>
 
-    <!-- Team cards (when teams are configured) -->
-    <template x-if="$store.teams.items.length > 0">
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 20px;">
-            <template x-for="team in $store.teams.items" :key="team.team_id">
-                <div class="card">
-                    <div class="card-header" :style="'border-left: 4px solid ' + team.color">
-                        <span x-text="team.name"></span>
-                        <span style="margin-left: auto; font-size: 1.1em; font-weight: 700;"
-                              x-text="fmt(team.total) + ' contributions'"></span>
-                    </div>
-                    <div class="card-body">
-                        <!-- Contribution breakdown -->
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px;">
-                            <div style="text-align: center;">
-                                <div style="font-size: 1.4em; font-weight: 700; color: var(--green-dark);"
-                                     x-text="fmt(team.identifications)">0</div>
-                                <div style="font-size: 0.75em; color: var(--text-muted);">IDs</div>
-                            </div>
-                            <div style="text-align: center;">
-                                <div style="font-size: 1.4em; font-weight: 700; color: var(--pulse-teal);"
-                                     x-text="fmt(team.comments)">0</div>
-                                <div style="font-size: 0.75em; color: var(--text-muted);">Comments</div>
-                            </div>
-                            <div style="text-align: center;">
-                                <div style="font-size: 1.4em; font-weight: 700; color: var(--gold);"
-                                     x-text="fmt(team.taxon_moves)">0</div>
-                                <div style="font-size: 0.75em; color: var(--text-muted);">Moves</div>
-                            </div>
-                            <div style="text-align: center;">
-                                <div style="font-size: 1.4em; font-weight: 700; color: var(--earth);"
-                                     x-text="fmt(team.annotations)">0</div>
-                                <div style="font-size: 0.75em; color: var(--text-muted);">Annotations</div>
-                            </div>
-                        </div>
+    <!-- Community stats summary -->
+    <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header" style="border-left: 4px solid var(--green-mid);">
+            🌍 Community
+            <span style="margin-left: auto; font-size: 1.1em; font-weight: 700;"
+                  x-text="fmt($store.participants.items.reduce((sum, p) => sum + p.total, 0)) + ' contributions'"></span>
+        </div>
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 1.4em; font-weight: 700; color: var(--green-dark);"
+                         x-text="fmt($store.participants.items.reduce((s, p) => s + p.identifications, 0))">0</div>
+                    <div style="font-size: 0.75em; color: var(--text-muted);">IDs</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 1.4em; font-weight: 700; color: var(--pulse-teal);"
+                         x-text="fmt($store.participants.items.reduce((s, p) => s + p.comments, 0))">0</div>
+                    <div style="font-size: 0.75em; color: var(--text-muted);">Comments</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 1.4em; font-weight: 700; color: var(--gold);"
+                         x-text="fmt($store.participants.items.reduce((s, p) => s + p.taxon_moves, 0))">0</div>
+                    <div style="font-size: 0.75em; color: var(--text-muted);">Moves</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 1.4em; font-weight: 700; color: var(--earth);"
+                         x-text="fmt($store.participants.items.reduce((s, p) => s + p.annotations, 0))">0</div>
+                    <div style="font-size: 0.75em; color: var(--text-muted);">Annotations</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                        <!-- Members -->
-                        <div class="section-title" style="font-size: 0.85em;">Team Members</div>
-                        <template x-for="member in team.members" :key="member.login">
-                            <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border);">
-                                <img class="avatar avatar-sm" :src="member.icon_url || ''" :alt="member.login"
-                                     onerror="this.style.display='none'">
-                                <div style="flex: 1;">
-                                    <div style="font-weight: 600; font-size: 0.88em;" x-text="member.name || member.login"></div>
-                                    <div style="font-size: 0.78em; color: var(--text-muted);" x-text="'@' + member.login"></div>
-                                </div>
-                                <div style="display: flex; gap: 12px; font-size: 0.82em; color: var(--text-light);">
-                                    <span title="Identifications">🔍 <span x-text="member.identifications"></span></span>
-                                    <span title="Comments">💬 <span x-text="member.comments"></span></span>
-                                    <span title="Moves">🔄 <span x-text="member.taxon_moves"></span></span>
-                                    <span title="Annotations">🏷️ <span x-text="member.annotations"></span></span>
-                                </div>
-                            </div>
-                        </template>
+    <!-- All contributors list -->
+    <div class="card">
+        <div class="card-header">👥 All Contributors</div>
+        <div class="card-body">
+            <template x-if="$store.participants.items.length === 0">
+                <p style="color: var(--text-muted); font-size: 0.9em; padding: 12px 0;">
+                    No contributions yet. Participants will appear here as they add identifications, comments, and annotations.
+                </p>
+            </template>
+            <template x-for="p in $store.participants.items" :key="p.login">
+                <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border);">
+                    <img class="avatar avatar-sm" :src="p.icon_url || ''" :alt="p.login"
+                         onerror="this.style.display='none'">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; font-size: 0.88em;" x-text="p.name || p.login"></div>
+                        <div style="font-size: 0.78em; color: var(--text-muted);" x-text="'@' + p.login"></div>
                     </div>
+                    <div style="display: flex; gap: 12px; font-size: 0.82em; color: var(--text-light);">
+                        <span title="Identifications">🔍 <span x-text="p.identifications"></span></span>
+                        <span title="Comments">💬 <span x-text="p.comments"></span></span>
+                        <span title="Moves">🔄 <span x-text="p.taxon_moves"></span></span>
+                        <span title="Annotations">🏷️ <span x-text="p.annotations"></span></span>
+                    </div>
+                    <div style="font-weight: 700; color: var(--green-dark); font-size: 0.9em; min-width: 30px; text-align: right;"
+                         x-text="p.total"></div>
                 </div>
             </template>
         </div>
-    </template>
-
-    <!-- Community view (when no teams configured) -->
-    <template x-if="$store.teams.items.length === 0">
-        <div>
-            <!-- Community stats summary -->
-            <div class="card" style="margin-bottom: 20px;">
-                <div class="card-header" style="border-left: 4px solid var(--green-mid);">
-                    🌍 Community
-                    <span style="margin-left: auto; font-size: 1.1em; font-weight: 700;"
-                          x-text="fmt($store.participants.items.reduce((sum, p) => sum + p.total, 0)) + ' contributions'"></span>
-                </div>
-                <div class="card-body">
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px;">
-                        <div style="text-align: center;">
-                            <div style="font-size: 1.4em; font-weight: 700; color: var(--green-dark);"
-                                 x-text="fmt($store.participants.items.reduce((s, p) => s + p.identifications, 0))">0</div>
-                            <div style="font-size: 0.75em; color: var(--text-muted);">IDs</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 1.4em; font-weight: 700; color: var(--pulse-teal);"
-                                 x-text="fmt($store.participants.items.reduce((s, p) => s + p.comments, 0))">0</div>
-                            <div style="font-size: 0.75em; color: var(--text-muted);">Comments</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 1.4em; font-weight: 700; color: var(--gold);"
-                                 x-text="fmt($store.participants.items.reduce((s, p) => s + p.taxon_moves, 0))">0</div>
-                            <div style="font-size: 0.75em; color: var(--text-muted);">Moves</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 1.4em; font-weight: 700; color: var(--earth);"
-                                 x-text="fmt($store.participants.items.reduce((s, p) => s + p.annotations, 0))">0</div>
-                            <div style="font-size: 0.75em; color: var(--text-muted);">Annotations</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- All participants list -->
-            <div class="card">
-                <div class="card-header">👥 All Contributors</div>
-                <div class="card-body">
-                    <template x-if="$store.participants.items.length === 0">
-                        <p style="color: var(--text-muted); font-size: 0.9em; padding: 12px 0;">
-                            No contributions yet. Participants will appear here as they add identifications, comments, and annotations.
-                        </p>
-                    </template>
-                    <template x-for="p in $store.participants.items" :key="p.login">
-                        <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border);">
-                            <img class="avatar avatar-sm" :src="p.icon_url || ''" :alt="p.login"
-                                 onerror="this.style.display='none'">
-                            <div style="flex: 1;">
-                                <div style="font-weight: 600; font-size: 0.88em;" x-text="p.name || p.login"></div>
-                                <div style="font-size: 0.78em; color: var(--text-muted);" x-text="'@' + p.login"></div>
-                            </div>
-                            <div style="display: flex; gap: 12px; font-size: 0.82em; color: var(--text-light);">
-                                <span title="Identifications">🔍 <span x-text="p.identifications"></span></span>
-                                <span title="Comments">💬 <span x-text="p.comments"></span></span>
-                                <span title="Moves">🔄 <span x-text="p.taxon_moves"></span></span>
-                                <span title="Annotations">🏷️ <span x-text="p.annotations"></span></span>
-                            </div>
-                            <div style="font-weight: 700; color: var(--green-dark); font-size: 0.9em; min-width: 30px; text-align: right;"
-                                 x-text="p.total"></div>
-                        </div>
-                    </template>
-                </div>
-            </div>
-        </div>
-    </template>
+    </div>
 </div>
 {% endblock %}
