@@ -2,12 +2,13 @@
 
 import asyncio
 import logging
+import traceback
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -57,6 +58,13 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Ranunculus Blitz Tracker", lifespan=lifespan, debug=True)
+
+
+@app.exception_handler(Exception)
+async def debug_exception_handler(request: Request, exc: Exception):
+    tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
+    return PlainTextResponse("".join(tb), status_code=500)
+
 
 # Mount static files
 app.mount("/static", StaticFiles(directory=str(APP_DIR / "static")), name="static")
