@@ -251,37 +251,6 @@ function createPopupContent(obs) {
         ? `<span class="popup-species" style="background:${obs.species_color || '#888'}">${obs.species_group}</span>`
         : '';
 
-    // Build claim/release action section
-    let claimHtml = '';
-    const username = localStorage.getItem('blitz_username');
-
-    if (!obs.resolved) {
-        if (!obs.claimed_by) {
-            if (username) {
-                claimHtml = `
-                    <div class="popup-actions">
-                        <button class="btn btn-primary btn-sm" onclick="window.claimFromMap(${obs.obs_id})">Claim</button>
-                    </div>`;
-            } else {
-                claimHtml = `
-                    <div class="popup-actions">
-                        <a href="/observations" class="popup-claim-link">Set username to claim</a>
-                    </div>`;
-            }
-        } else if (obs.claimed_by === username) {
-            claimHtml = `
-                <div class="popup-actions">
-                    <span class="popup-claimed popup-claimed-you">Claimed by you</span>
-                    <button class="btn btn-secondary btn-sm" onclick="window.releaseFromMap(${obs.obs_id})">Release</button>
-                </div>`;
-        } else {
-            claimHtml = `
-                <div class="popup-actions">
-                    <span class="popup-claimed">Claimed by <strong>${obs.claimed_by}</strong></span>
-                </div>`;
-        }
-    }
-
     return `
         <div style="min-width:200px">
             ${img}
@@ -294,71 +263,13 @@ function createPopupContent(obs) {
             <a class="popup-link" href="https://www.inaturalist.org/observations/${obs.obs_id}" target="_blank">
                 View on iNaturalist &rarr;
             </a>
-            ${claimHtml}
         </div>
     `;
 }
 
 
-async function claimFromMap(obsId) {
-    const username = localStorage.getItem('blitz_username');
-    if (!username) return;
-
-    try {
-        const resp = await fetch(`/api/observations/${obsId}/claim`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ login: username }),
-        });
-        if (!resp.ok) throw new Error(await resp.text());
-
-        // Update local data and re-open popup with fresh content
-        if (obsData[obsId]) {
-            obsData[obsId].claimed_by = username;
-            const o = obsData[obsId];
-            map.closePopup();
-            L.popup()
-                .setLatLng([o.lat, o.lng])
-                .setContent(createPopupContent(o))
-                .openOn(map);
-        }
-    } catch (e) {
-        console.error('Failed to claim observation:', e);
-    }
-}
-
-
-async function releaseFromMap(obsId) {
-    const username = localStorage.getItem('blitz_username');
-    if (!username) return;
-
-    try {
-        const resp = await fetch(`/api/observations/${obsId}/claim`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ login: username }),
-        });
-        if (!resp.ok) throw new Error(await resp.text());
-
-        if (obsData[obsId]) {
-            obsData[obsId].claimed_by = null;
-            const o = obsData[obsId];
-            map.closePopup();
-            L.popup()
-                .setLatLng([o.lat, o.lng])
-                .setContent(createPopupContent(o))
-                .openOn(map);
-        }
-    } catch (e) {
-        console.error('Failed to release observation:', e);
-    }
-}
-
-
-// Expose globally for SSE refresh, legend filtering, map init, and popup actions
+// Expose globally for SSE refresh, legend filtering, and map init
 window.refreshMapMarkers = refreshMapMarkers;
 window.initMap = initMap;
 window.toggleMapFilter = toggleMapFilter;
 window._applyMapFilter = _applyMapFilter;
-window.claimFromMap = claimFromMap;
-window.releaseFromMap = releaseFromMap;

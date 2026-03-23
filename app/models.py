@@ -59,7 +59,6 @@ class ObservationSummary(BaseModel):
     quality_grade: Optional[str] = None
     species_group: Optional[str] = None
     species_color: Optional[str] = None
-    claimed_by: Optional[str] = None
     resolved: bool = False
 
 
@@ -98,7 +97,6 @@ class MapMarker(BaseModel):
     quality_grade: Optional[str] = None
     species_group: Optional[str] = None
     species_color: Optional[str] = None
-    claimed_by: Optional[str] = None
     resolved: bool = False
     observed_on: Optional[str] = None
     updated_at: Optional[str] = None
@@ -113,5 +111,3 @@ class BlitzStatus(BaseModel):
     ended_at: Optional[str] = None
 
 
-class ClaimRequest(BaseModel):
-    login: str

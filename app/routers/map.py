@@ -20,7 +20,7 @@ async def get_map_data(
             cursor = await db.execute(
                 """SELECT obs_id, lat, lng, photo_url, taxon_name,
                           quality_grade, species_group, species_color,
-                          claimed_by, resolved, observed_on, updated_at
+                          resolved, observed_on, updated_at
                    FROM observations
                    WHERE lat IS NOT NULL AND lng IS NOT NULL
                      AND updated_at > ?""",
@@ -30,7 +30,7 @@ async def get_map_data(
             cursor = await db.execute(
                 """SELECT obs_id, lat, lng, photo_url, taxon_name,
                           quality_grade, species_group, species_color,
-                          claimed_by, resolved, observed_on, updated_at
+                          resolved, observed_on, updated_at
                    FROM observations
                    WHERE lat IS NOT NULL AND lng IS NOT NULL"""
             )
@@ -46,10 +46,9 @@ async def get_map_data(
                 quality_grade=r[5],
                 species_group=r[6],
                 species_color=r[7],
-                claimed_by=r[8],
-                resolved=bool(r[9]),
-                observed_on=r[10],
-                updated_at=r[11],
+                resolved=bool(r[8]),
+                observed_on=r[9],
+                updated_at=r[10],
             )
             for r in rows
         ]

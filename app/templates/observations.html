@@ -7,27 +7,12 @@
 
     <h2 class="section-title" style="margin-top: 20px;">🌼 Observations Browser</h2>
 
-    <!-- Username bar -->
-    <div class="controls" style="margin-top: 16px; background: var(--cream); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);">
-        <label style="font-size: 0.85em; font-weight: 600; color: var(--green-dark);">Your iNat username:</label>
-        <input type="text" x-model="claimLogin" @change="saveLogin()"
-               placeholder="e.g. jane_naturalist"
-               style="max-width: 200px;">
-        <template x-if="claimLogin">
-            <span style="font-size: 0.82em; color: var(--success);">Claiming as <strong x-text="claimLogin"></strong></span>
-        </template>
-        <template x-if="!claimLogin">
-            <span style="font-size: 0.82em; color: var(--text-muted);">Set username to claim observations</span>
-        </template>
-    </div>
-
     <!-- Controls -->
     <div class="controls">
         <select x-model="filter" @change="loadPage(1)">
             <option value="all">All observations</option>
             <option value="unresolved">Needs ID</option>
             <option value="resolved">Resolved</option>
-            <option value="claimed">Claimed</option>
         </select>
 
         <select x-model="sort" @change="loadPage(1)">
@@ -72,11 +57,6 @@
                         <span class="badge" :class="obs.resolved ? 'badge-research' : 'badge-needs-id'"
                               x-text="obs.resolved ? 'Resolved' : 'Needs ID'"></span>
                     </div>
-                    <template x-if="obs.claimed_by">
-                        <div class="obs-meta" style="margin-top: 4px;">
-                            Claimed by <strong x-text="obs.claimed_by"></strong>
-                        </div>
-                    </template>
                 </div>
                 <div class="obs-actions">
                     <a class="btn btn-sm btn-primary"
@@ -84,18 +64,6 @@
                        target="_blank">
                         View on iNat
                     </a>
-                    <template x-if="claimLogin && !obs.claimed_by && !obs.resolved">
-                        <button class="btn btn-sm btn-secondary"
-                                @click="claimObs(obs.obs_id)">
-                            Claim
-                        </button>
-                    </template>
-                    <template x-if="obs.claimed_by">
-                        <button class="btn btn-sm btn-secondary"
-                                @click="releaseObs(obs.obs_id)">
-                            Release
-                        </button>
-                    </template>
                 </div>
             </div>
         </template>
@@ -130,15 +98,8 @@ function observationsPage() {
         sort: 'obs_id',
         order: 'asc',
         species: '',
-        claimLogin: '',
-
         async init() {
-            this.claimLogin = localStorage.getItem('blitz_username') || '';
             await this.loadPage(1);
-        },
-
-        saveLogin() {
-            localStorage.setItem('blitz_username', this.claimLogin);
         },
 
         async loadPage(p) {
@@ -156,28 +117,6 @@ function observationsPage() {
             }
         },
 
-        async claimObs(obsId) {
-            if (!this.claimLogin) return;
-            try {
-                await fetch(`/api/observations/${obsId}/claim`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ login: this.claimLogin }),
-                });
-                await this.loadPage(this.page);
-            } catch (e) {
-                console.error('Failed to claim:', e);
-            }
-        },
-
-        async releaseObs(obsId) {
-            try {
-                await fetch(`/api/observations/${obsId}/claim`, { method: 'DELETE' });
-                await this.loadPage(this.page);
-            } catch (e) {
-                console.error('Failed to release:', e);
-            }
-        }
     };
 }
 </script>

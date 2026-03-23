@@ -707,23 +707,6 @@ nav .nav-links a.active {
     gap: 8px;
 }
 
-.popup-claimed {
-    font-size: 0.82em;
-    color: var(--text-muted);
-}
-
-.popup-claimed-you {
-    color: var(--green-mid);
-    font-weight: 600;
-}
-
-.popup-claim-link {
-    font-size: 0.82em;
-    color: var(--gold);
-    font-weight: 600;
-    text-decoration: none;
-}
-.popup-claim-link:hover { text-decoration: underline; }
 
 /* ── Participant avatars ───────────────────────────────────────────────── */
 
